@@ -1,16 +1,12 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 
 
 ## Loading and preprocessing the data
 
 
 First we need to download files by this url and unzip it (if it's not exist in the current folder)
-```{r, echo=TRUE}
+
+```r
 fileName <- "activity"
 if (!file.exists(paste0(fileName, ".csv"))){
     dataUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
@@ -20,16 +16,55 @@ if (!file.exists(paste0(fileName, ".csv"))){
 ```
 
 Read files. Today I just find out that we can read directly from zip files
-```{r}
+
+```r
 data <- read.csv(paste0(fileName, ".csv"))
 
 library(dplyr)
+```
+
+```
+## 
+## Attaching package: 'dplyr'
+```
+
+```
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```r
 data2 <- tbl_df(data)
 ```
 
 We can look at the data:
-```{r}
+
+```r
 data2
+```
+
+```
+## # A tibble: 17,568 × 3
+##    steps       date interval
+##    <int>     <fctr>    <int>
+## 1     NA 2012-10-01        0
+## 2     NA 2012-10-01        5
+## 3     NA 2012-10-01       10
+## 4     NA 2012-10-01       15
+## 5     NA 2012-10-01       20
+## 6     NA 2012-10-01       25
+## 7     NA 2012-10-01       30
+## 8     NA 2012-10-01       35
+## 9     NA 2012-10-01       40
+## 10    NA 2012-10-01       45
+## # ... with 17,558 more rows
 ```
 
 
@@ -39,41 +74,52 @@ data2
 
 
 First, we need group data by date:
-```{r}
+
+```r
 dataGrouped <- group_by(data2, date)
 ```
 
 Now we can summarize data by date:
-```{r}
+
+```r
 totalSteps <- summarise(dataGrouped, 
                         totalSteps = sum(steps, na.rm = T))
 ```
 
 This is a histogram (with rug) of the total number of steps taken each day:
-```{r}
+
+```r
 hist(totalSteps$totalSteps, breaks = 20, 
      main="Total number of steps taken each day",
      xlab="Total Steps")
 rug(totalSteps$totalSteps)
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+
 We can see that a lot of days don't have steps data.  
 
-* Days with zero steps : `r sum(totalSteps$totalSteps == 0)`   
+* Days with zero steps : 8   
 
 If there is data, then amount of steps per day stars from about 2500.   
 Most of days have 10000-11000 steps. 
 
 Summary of this data is:
-```{r}
+
+```r
 summaryTotalSteps <-summary(totalSteps$totalSteps)
 summaryTotalSteps
 ```
 
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##       0    6778   10400    9354   12810   21190
+```
+
 So, we can see that:
 
-* **Median** = `r as.character(summaryTotalSteps["Median"])`
-* **Mean** = `r as.character(summaryTotalSteps["Mean"])`
+* **Median** = 10400
+* **Mean** = 9354
     
 
 ## What is the average daily activity pattern?
@@ -82,25 +128,30 @@ So, we can see that:
 
 First group by intervals:
 
-```{r}
+
+```r
 dataGroupedIntervals <- group_by(data2, interval)
 ```
 
 Now find average numbers of steps
-```{r}
+
+```r
 averageStepsByInervals <- summarise(dataGroupedIntervals,
                                     averageSteps = mean(steps, na.rm = T))
 with(averageStepsByInervals, plot(interval, averageSteps, type="l"))
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
 ####Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
-```{r}
+
+```r
 maxSteps <- which.max(averageStepsByInervals$averageSteps)
 timeMaxSteps <- averageStepsByInervals[maxSteps, "interval"]
 ```
 
-* Maximum number of steps in inerval:  `r gsub("([0-9]{1,2})([0-9]{2})", "\\1:\\2", timeMaxSteps)`
+* Maximum number of steps in inerval:  8:35
 
 
 
@@ -110,39 +161,77 @@ timeMaxSteps <- averageStepsByInervals[maxSteps, "interval"]
 
 ####Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
 
-```{r}
+
+```r
 missingValueCount <- sum(is.na(data2$steps))
 ```
 
-* Count of missing value = `r missingValueCount`
+* Count of missing value = 2304
 
 ##### 2. Devise a strategy for filling in all of the missing values in the dataset.
 For imputting data I will use impute funciton from library Hmisc. 
-```{r}
+
+```r
 library(Hmisc)
+```
+
+```
+## Loading required package: lattice
+```
+
+```
+## Loading required package: survival
+```
+
+```
+## Loading required package: Formula
+```
+
+```
+## Loading required package: ggplot2
+```
+
+```
+## 
+## Attaching package: 'Hmisc'
+```
+
+```
+## The following objects are masked from 'package:dplyr':
+## 
+##     combine, src, summarize
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     format.pval, round.POSIXt, trunc.POSIXt, units
 ```
 
 I will use mean function to imput missing values.
 
 ##### 3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
 
-```{r}
+
+```r
 dataImputed <- data2
 dataImputed$steps <- impute(data2$steps, fun=mean)
 ```
 
 Now will check do we have missing values or not:
 
-```{r}
+
+```r
 missingValueCount <- sum(is.na(dataImputed$steps))
 ```
 
-* Count of missing value after imputing = `r missingValueCount` 
+* Count of missing value after imputing = 0 
 
 ####Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. 
 
 This is a histogram (with rug) of the total number of steps taken each day:
-```{r}
+
+```r
 dataGrouped2 <- group_by(dataImputed, date)
 totalSteps2 <- summarise(dataGrouped2, 
                         totalSteps = sum(steps, na.rm = T))
@@ -152,26 +241,39 @@ hist(totalSteps2$totalSteps, breaks = 20,
 rug(totalSteps2$totalSteps)
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+
 ####Do these values differ from the estimates from the first part of the assignment? 
 Yes, values are differ.
 
 ####What is the impact of imputing missing data on the estimates of the total daily number of steps?
 
 All missing data are filled up with mean data. We can see it by using this code:
-```{r}
+
+```r
 totalSteps2$totalSteps[totalSteps$totalSteps == 0]
 ```
 
+```
+## [1] 10766.19 10766.19 10766.19 10766.19 10766.19 10766.19 10766.19 10766.19
+```
+
 ####Summary of this data is:
-```{r}
+
+```r
 summaryTotalSteps2 <-summary(totalSteps2$totalSteps)
 summaryTotalSteps2
 ```
 
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##      41    9819   10770   10770   12810   21190
+```
+
 So, we can see that:
 
-* **Median** = `r as.character(summaryTotalSteps2["Median"])`
-* **Mean** = `r as.character(summaryTotalSteps2["Mean"])`
+* **Median** = 10770
+* **Mean** = 10770
 
 
 
@@ -180,7 +282,8 @@ So, we can see that:
 
 ####Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
 
-```{r}
+
+```r
 dataImputed$dateType <- ifelse(
         as.POSIXlt(dataImputed$date)$wday %in% c(0,6), 
         'weekend', 'weekday')
@@ -189,7 +292,8 @@ dataImputed$dateType <- ifelse(
 
 ####Make a panel plot containing a time series plot
 
-```{r}
+
+```r
 averageDataImputed <- aggregate(steps ~ interval + dateType, 
                                 data=dataImputed, mean)
 ggplot(averageDataImputed, aes(interval, steps)) + 
@@ -198,5 +302,7 @@ ggplot(averageDataImputed, aes(interval, steps)) +
     xlab("5-minute interval") + 
     ylab("avarage number of steps")
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
 
 We can see, on weekends there is more steps during a day
